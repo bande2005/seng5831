@@ -1,0 +1,29 @@
+Note: All my experiments were ran for 30 seconds. The write-up states both 30 seconds and 60 seconds in different places, so I chose the faster one.
+
+1) My WCET analysis was pretty good. I could not see any inaccuracies, 60 toggles in 60 seconds. Yellow and Green LED's were within one toggle.
+
+2) All LED's were in within one toggle. R:30 G:31 G:30
+
+3) 90ms wait:
+	Green ISR wait-  toggle counts: R:49 G:62 Y:61
+	Yellow ISR wait- toggle counts: R:07 G:63 Y:61
+	The red LED was disrupted for both, more so when the wait was in the yellow ISR. When the wait is executed in an ISR, the cyclic executive (while loop blocks until the wait exits and the interrupt finishes. We see a bigger disruption with the yellow ISR because that one is firing more often the the green ISR. The yellow is firing every 100ms, while green ISR is firing at the frequency of its toggles, which is 500ms. Thus the yellow ISR blocks other more often. 
+
+4) 110ms wait:
+	Green ISR wait-  toggle counts: 110ms wait: R:47 G:62 Y:59
+	Yellow ISR wait- Could not get toggle counts. Red was always off.
+	Here we see a slight disruption with the red LED again when the wait is in the green ISR. However for the yellow ISR, the red LED never turns on.This is because the frequency of the wait is matching up with the frequency of the yellow interrupt, thus the program is alway servicing the yellow interrupt, never allowing the cyclic executive to run. The menu options never work as we are never able to check for input.
+
+5) 510ms wait:
+	Could not use menu functions
+	Green ISR wait - Green appeared to toggle at normal frequency. The yellow and red LED's were constantly on.
+	Yellow ISR wait - Green appeared to toggle at normal frequency. The yellow LED toggled very slowly, about once every 3 seconds. Red was always off.
+	This result is similar to 4, but this time the Green interrupt is wait frequency is matching up with the rate at which it fires, thus the program is constantly serving the green ISR. This is why we see yellow and red LED's always on. They are always on and not always off because they get toggled before the green, due to being in CTC mode and the green having a initial 250ms delay with PWM. 
+	When the wait was in the yellow ISR, we saw a decreased frequency of the yellow LED. This is due to simply waiting longer in ISR, which slows down the rate of the yellow toggles.
+
+6) 510ms wait with sei():
+	Could not use menu functions. 
+	Green ISR wait - Green and yellow LED's appeared to be toggling at normal frequency. The red LED was always on.
+	Yellow ISR wait - Green and yellow LED's appeared to be toggling at normal frequency. The red LED never toggled, always off.
+	When using sei(), this appears to allow the yellow LED to return to normal toggle frequency. My guess to this is that when the program is servicing an interrupt, say the green ISR, the i-bit in the status register (SREG) is cleared. Normally the i-bit is not set again until the interrupt finishes. However, when we call sei() in the interrupt, we are setting the i-bit register, which allows the yellow ISR to fire. The red LED still never toggles due to the program constantly servicing interrupts, never allowing the cyclic executive to run.
+
